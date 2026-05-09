@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3f4f6" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563eb%22/><text x=%2250%22 y=%2250%22 font-family=%22system-ui%22 font-size=%2250%22 fill=%22white%22 text-anchor=%22middle%22 dy=%22.35em%22>¥</text></svg>">
+    <title>轻量记账</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <section class="splash" id="splash" aria-label="加载中">
+        <div class="splash-mark">¥</div>
+        <h1>好好存钱哦</h1>
+        <p>正在整理今天的小账本</p>
+      </section>
+
+      <main class="app" id="app" aria-live="polite">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="monthLabel">本月账本</p>
+            <h1>轻量记账</h1>
+          </div>
+          <button class="icon-button" id="themeToggle" aria-label="切换深色模式" title="切换深色模式">
+            <span>◐</span>
+          </button>
+        </header>
+
+        <section class="screen active" data-screen="home">
+          <article class="hero-panel">
+            <p>本月支出</p>
+            <strong id="monthExpense">¥0.00</strong>
+            <div class="hero-budget-balance">
+              <span>预算结余</span>
+              <b id="heroBudgetBalance">¥0.00</b>
+            </div>
+            <div class="hero-grid">
+              <span>收入 <b id="monthIncome">¥0.00</b></span>
+              <span>结余 <b id="monthBalance">¥0.00</b></span>
+            </div>
+          </article>
+
+          <section class="budget-panel">
+            <div class="section-title">
+              <h2>预算进度</h2>
+              <button class="text-button" data-open-budget>设置</button>
+            </div>
+            <div class="budget-line">
+              <span id="budgetUsedText">已用 ¥0.00</span>
+              <span id="budgetLeftText">剩余 ¥0.00</span>
+            </div>
+            <div class="budget-line subline">
+              <span id="dailyBudgetText">日均预算 ¥0.00</span>
+              <span id="todayExpenseText">今日支出 ¥0.00</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="budgetProgress"></div>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">
+              <h2>最近账单</h2>
+              <button class="text-button" data-tab="bills">查看全部</button>
+            </div>
+            <div class="record-list compact" id="recentList"></div>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="bills">
+          <div class="section-title sticky-title">
+            <h2>账单</h2>
+            <div class="filter-stack">
+              <select id="billRangeFilter" aria-label="账单时间范围">
+                <option value="period">当前账本周期</option>
+                <option value="all">全部历史</option>
+                <option value="custom">自定义日期</option>
+              </select>
+              <select id="billFilter" aria-label="筛选账单">
+                <option value="all">全部</option>
+                <option value="expense">支出</option>
+                <option value="income">收入</option>
+              </select>
+            </div>
+          </div>
+          <label class="search-field">
+            <span>搜索</span>
+            <input id="billSearch" type="search" placeholder="分类或备注" />
+          </label>
+          <div class="date-filter hidden" id="billCustomRange">
+            <label class="text-field">
+              <span>开始日期</span>
+              <input id="billStartDate" type="date" />
+            </label>
+            <label class="text-field">
+              <span>结束日期</span>
+              <input id="billEndDate" type="date" />
+            </label>
+          </div>
+          <div class="record-list" id="billList"></div>
+        </section>
+
+        <section class="screen" data-screen="stats">
+          <div class="section-title">
+            <h2>统计</h2>
+            <select id="statsRangeFilter" aria-label="统计时间范围">
+              <option value="period">当前账本周期</option>
+              <option value="all">全部历史</option>
+              <option value="custom">自定义日期</option>
+            </select>
+          </div>
+          <div class="segmented" id="statsTypeSegmented" style="margin-bottom: 16px;">
+            <button type="button" class="active" data-stats-type="expense">支出</button>
+            <button type="button" data-stats-type="income">收入</button>
+          </div>
+          <div class="date-filter hidden" id="statsCustomRange">
+            <label class="text-field">
+              <span>开始日期</span>
+              <input id="statsStartDate" type="date" />
+            </label>
+            <label class="text-field">
+              <span>结束日期</span>
+              <input id="statsEndDate" type="date" />
+            </label>
+          </div>
+          <div class="stats-grid">
+            <article>
+              <span id="statsTopLabel">最大支出</span>
+              <strong id="topCategory">暂无</strong>
+            </article>
+            <article>
+              <span id="statsDailyLabel">日均支出</span>
+              <strong id="dailyAverage">¥0</strong>
+            </article>
+          </div>
+          <section class="chart-panel">
+            <div class="chart-header">
+              <h3 id="statsChartTitle">支出可视化</h3>
+              <div class="mini-segmented" aria-label="图表类型">
+                <button type="button" class="active" data-chart="bar">柱状图</button>
+                <button type="button" data-chart="pie">饼图</button>
+              </div>
+            </div>
+            <div class="bars" id="categoryBars"></div>
+            <div class="pie-panel hidden" id="piePanel">
+              <div class="pie-chart" id="pieChart" aria-label="分类饼图"></div>
+              <div class="pie-legend" id="pieLegend"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="me">
+          <div class="profile-block">
+            <div class="avatar">Neo</div>
+            <div>
+              <h2>轻量记账</h2>
+              <p>只记录收支、统计和预算。</p>
+            </div>
+          </div>
+          <div class="settings-list">
+            <button data-open-budget>
+              <span>预算设置</span>
+              <b id="settingsBudget">¥0</b>
+            </button>
+            <button id="manageCategories">
+              <span>分类管理</span>
+              <b>支出 / 收入</b>
+            </button>
+            <button id="appearanceSettings">
+              <span>外观设置</span>
+              <b>背景 / 字体</b>
+            </button>
+            <button id="periodSettings">
+              <span>账本周期</span>
+              <b id="settingsPeriod">自然月</b>
+            </button>
+            <button id="exportData">
+              <span>导出数据</span>
+              <b>JSON</b>
+            </button>
+            <button id="importData">
+              <span>导入数据</span>
+              <b>JSON</b>
+            </button>
+            <button id="privacyLock">
+              <span>隐私锁</span>
+              <b>未开启</b>
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <button class="fab" id="addButton" aria-label="记一笔">+</button>
+
+      <nav class="tabbar" aria-label="主导航">
+        <button class="active" data-tab="home"><span>⌂</span>首页</button>
+        <button data-tab="bills"><span>≡</span>账单</button>
+        <button data-tab="stats"><span>◌</span>统计</button>
+        <button data-tab="me"><span>☻</span>我的</button>
+      </nav>
+    </div>
+
+    <dialog class="entry-modal" id="entryModal">
+      <form method="dialog" id="entryForm">
+        <div class="modal-header">
+          <h2 id="entryTitle">记一笔</h2>
+          <button type="button" class="icon-button" id="closeEntry" aria-label="关闭">×</button>
+        </div>
+
+        <div class="segmented" role="tablist" aria-label="账单类型">
+          <button type="button" class="active" data-type="expense">支出</button>
+          <button type="button" data-type="income">收入</button>
+        </div>
+
+        <label class="amount-field">
+          <span>金额</span>
+          <input id="amountInput" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required />
+        </label>
+
+        <div>
+          <p class="field-label">分类</p>
+          <div class="category-grid" id="categoryGrid"></div>
+        </div>
+
+        <label class="text-field">
+          <span>日期</span>
+          <input id="dateInput" type="date" required />
+        </label>
+
+        <label class="text-field">
+          <span>备注</span>
+          <input id="noteInput" type="text" maxlength="24" placeholder="可选" />
+        </label>
+
+        <label class="checkbox-field">
+          <input id="excludedInput" type="checkbox" />
+          <span>不计入日常统计 (不触发超支提醒，不计入图表)</span>
+        </label>
+
+        <div class="form-actions">
+          <button class="danger-button hidden" type="button" id="deleteRecord">删除</button>
+          <button class="primary-button" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="budgetModal">
+      <form method="dialog" id="budgetForm">
+        <div class="modal-header">
+          <h2>预算设置</h2>
+          <button type="button" class="icon-button" id="closeBudget" aria-label="关闭">×</button>
+        </div>
+        <label class="amount-field">
+          <span>每月总预算</span>
+          <input id="budgetInput" type="number" inputmode="decimal" min="0" step="1" required />
+        </label>
+        <button class="primary-button" type="submit">保存预算</button>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="categoryModal">
+      <form method="dialog" id="categoryForm">
+        <div class="modal-header">
+          <h2>分类管理</h2>
+          <button type="button" class="icon-button" id="closeCategory" aria-label="关闭">×</button>
+        </div>
+        <div class="segmented" role="tablist" aria-label="分类类型">
+          <button type="button" class="active" data-category-type="expense">支出</button>
+          <button type="button" data-category-type="income">收入</button>
+        </div>
+        <div class="category-manage-list" id="categoryManageList"></div>
+        <div class="inline-fields">
+          <label class="text-field">
+            <span>图标</span>
+            <input id="newCategoryIcon" type="text" maxlength="2" placeholder="字" />
+          </label>
+          <label class="text-field">
+            <span>名称</span>
+            <input id="newCategoryName" type="text" maxlength="8" placeholder="分类名" />
+          </label>
+        </div>
+        <button class="primary-button" type="submit">添加分类</button>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="appearanceModal">
+      <form method="dialog" id="appearanceForm">
+        <div class="modal-header">
+          <h2>外观设置</h2>
+          <button type="button" class="icon-button" id="closeAppearance" aria-label="关闭">×</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>全局背景颜色</span>
+            <input id="backgroundColorInput" type="color" value="#eaf8fe" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmBackgroundColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>卡片背景颜色</span>
+            <input id="panelColorInput" type="color" value="#ffffff" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmPanelColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>顶部卡片背景</span>
+            <input id="heroBgColorInput" type="color" value="#e3f4fb" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmHeroBgColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>图标背景颜色</span>
+            <input id="iconBgColorInput" type="color" value="#dff3fb" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmIconBgColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>加载背景颜色</span>
+            <input id="splashBgColorInput" type="color" value="#eaf8fe" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmSplashBgColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>加载字体颜色</span>
+            <input id="splashFontColorInput" type="color" value="#a85f6b" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmSplashFontColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>主要字体颜色</span>
+            <input id="fontColorInput" type="color" value="#17313d" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmFontColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>次要字体颜色</span>
+            <input id="mutedFontColorInput" type="color" value="#647986" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmMutedFontColor">确认</button>
+        </div>
+        <div class="color-field-group">
+          <label class="color-field">
+            <span>分类图标字体颜色</span>
+            <input id="categoryFontColorInput" type="color" value="#155f84" />
+          </label>
+          <button type="button" class="secondary-button small" id="confirmCategoryFontColor">确认</button>
+        </div>
+        <label class="file-field">
+          <span>背景图片</span>
+          <input id="backgroundImageInput" type="file" accept="image/*" />
+        </label>
+        <button class="secondary-button" type="button" id="clearBackgroundImage">清除背景图</button>
+        <button class="secondary-button" type="button" id="restoreDefaultAppearance">恢复默认配色</button>
+        <button class="primary-button" type="submit">保存外观并关闭</button>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="periodModal">
+      <form method="dialog" id="periodForm">
+        <div class="modal-header">
+          <h2>账本周期</h2>
+          <button type="button" class="icon-button" id="closePeriod" aria-label="关闭">×</button>
+        </div>
+        <div class="segmented" role="tablist" aria-label="周期模式">
+          <button type="button" class="active" data-period-mode="natural">自然月</button>
+          <button type="button" data-period-mode="custom">自定义</button>
+        </div>
+        <div class="inline-fields" id="customPeriodFields">
+          <label class="text-field">
+            <span>开始日期</span>
+            <input id="periodStartInput" type="date" />
+          </label>
+          <label class="text-field">
+            <span>结束日期</span>
+            <input id="periodEndInput" type="date" />
+          </label>
+        </div>
+        <button class="primary-button" type="submit">保存周期</button>
+      </form>
+    </dialog>
+
+    <input id="importFile" type="file" accept="application/json,.json" hidden />
+
+    <script src="app.js"></script>
+  </body>
+</html>
