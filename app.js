@@ -217,6 +217,17 @@ function todayExpense() {
     .reduce((sum, record) => sum + Number(record.amount), 0);
 }
 
+function getCategoryExpenses() {
+  const expenses = {};
+  const { start, end } = periodRange();
+  state.records.forEach((r) => {
+    if (r.type === "expense" && r.date >= start && r.date <= end && !r.excluded) {
+      expenses[r.category] = (expenses[r.category] || 0) + Number(r.amount);
+    }
+  });
+  return expenses;
+}
+
 function checkDailyBudgetReminder() {
   const limit = dailyBudget();
   const spent = todayExpense();
@@ -266,6 +277,33 @@ function renderOverview() {
   $("#todayExpenseText").textContent = `今日支出 ${money(todayExpense())}`;
   $("#budgetProgress").style.width = `${percent}%`;
   $("#settingsBudget").textContent = money(currentB);
+
+  const catExpenses = getCategoryExpenses();
+  const budgetCats = (state.categories.expense || []).filter(c => c.budget > 0);
+  const panel = $("#categoryBudgetsPanel");
+  if (budgetCats.length > 0) {
+    panel.style.display = "block";
+    $("#categoryBudgetsList").innerHTML = budgetCats.map(cat => {
+      const spent = catExpenses[cat.name] || 0;
+      const catLeft = Math.max(cat.budget - spent, 0);
+      const pct = Math.min((spent / cat.budget) * 100, 100);
+      const isNear = pct >= 90;
+      const isOver = spent > cat.budget;
+      return `
+        <div class="cat-budget-item ${isNear ? 'near-limit' : ''}">
+          <div class="cat-budget-info">
+            <span>${cat.icon} ${cat.name} <small style="color:var(--muted);font-size:11px;margin-left:4px;">${money(spent)} / ${money(cat.budget)}</small></span>
+            <span>${isOver ? '超支' : '剩余'} ${money(Math.abs(cat.budget - spent))}</span>
+          </div>
+          <div class="cat-progress-bar">
+            <div class="progress-fill ${isNear ? 'danger' : ''}" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    panel.style.display = "none";
+  }
 }
 
 function recordTemplate(record) {
@@ -545,6 +583,11 @@ function renderCategoryManager() {
     button.classList.toggle("active", button.dataset.categoryType === state.managingType);
   });
 
+  const clearBtn = $("#clearAllCategoryBudgets");
+  if (clearBtn) {
+    clearBtn.style.display = state.managingType === "expense" ? "block" : "none";
+  }
+
   $("#categoryManageList").innerHTML = state.categories[state.managingType]
     .map(
       (category) => `
@@ -614,8 +657,23 @@ function saveRecord(event) {
   switchTab("home");
   
   // 延迟检查预算，让模态框先关闭，并且如果是“不计入”账单，就不检查超支
-  if (payload.type === "expense" && payload.date === todayISO && !payload.excluded) {
-    setTimeout(checkDailyBudgetReminder, 100);
+  if (payload.type === "expense" && !payload.excluded) {
+    setTimeout(() => {
+      if (payload.date === todayISO) {
+        checkDailyBudgetReminder();
+      }
+      
+      const catObj = state.categories.expense.find(c => c.name === payload.category);
+      if (catObj && catObj.budget > 0) {
+        const spentNow = getCategoryExpenses()[payload.category] || 0;
+        const pct = spentNow / catObj.budget;
+        if (pct >= 1) {
+          alert(`注意：您的【${payload.category}】分类已超支！(预算 ${money(catObj.budget)})`);
+        } else if (pct >= 0.9) {
+          alert(`提醒：您的【${payload.category}】分类预算即将用完 (已用 ${(pct*100).toFixed(0)}%)。`);
+        }
+      }
+    }, 100);
   }
 }
 
@@ -816,6 +874,28 @@ function bindEvents() {
       renderCategoryManager();
     });
   });
+  
+  $("#clearAllCategoryBudgets").addEventListener("click", () => {
+    if (!confirm("确定要清除所有已设置的分类预算吗？")) return;
+    if (state.categories.expense) {
+      let changed = false;
+      state.categories.expense.forEach(category => {
+        if (category.budget !== undefined) {
+          delete category.budget;
+          changed = true;
+        }
+      });
+      if (changed) {
+        saveState();
+        renderAll();
+        renderCategoryManager();
+        alert("已清除所有分类预算！");
+      } else {
+        alert("当前没有设置任何分类预算。");
+      }
+    }
+  });
+
   $("#categoryManageList").addEventListener("change", (event) => {
     if (event.target.classList.contains("category-budget-input")) {
       const name = event.target.dataset.budgetCategory;

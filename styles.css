@@ -142,27 +142,29 @@ button {
 }
 
 .hero-panel {
-  padding: 22px;
-  background: var(--hero-bg);
-  color: var(--text);
-  border: 1px solid var(--line);
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: var(--top-card-bg, linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%));
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .hero-panel p {
-  margin: 0 0 8px;
-  color: var(--accent-dark);
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 4px;
 }
 
 .hero-panel strong {
   display: block;
-  font-size: 38px;
+  font-size: 32px;
   line-height: 1.1;
   letter-spacing: 0;
 }
 
 .hero-budget-balance {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 12px;
+  padding: 12px 16px;
   border-radius: 12px;
   background: var(--panel);
   display: flex;
@@ -173,13 +175,13 @@ button {
 
 .hero-budget-balance span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .hero-budget-balance b {
   color: var(--accent-dark);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
 }
 
@@ -191,7 +193,7 @@ button {
 }
 
 .hero-grid span {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.4);
   color: var(--muted);
@@ -260,6 +262,36 @@ button {
   border-radius: inherit;
   background: var(--accent);
   transition: width 0.25s ease;
+}
+
+.cat-budget-item {
+  margin-bottom: 12px;
+}
+.cat-budget-item:last-child {
+  margin-bottom: 0;
+}
+.cat-budget-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.cat-budget-item.near-limit .cat-budget-info {
+  color: #ef4444;
+}
+.cat-budget-item.near-limit .cat-budget-info small {
+  color: #ef4444 !important;
+}
+
+.cat-progress-bar {
+  height: 6px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill.danger {
+  background: #ef4444;
 }
 
 .record-list {
@@ -876,6 +908,36 @@ select {
   background: transparent;
   color: var(--rose);
   font-size: 18px;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.budget-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.budget-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 8px;
 }
 
 body.dark {

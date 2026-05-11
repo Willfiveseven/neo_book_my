@@ -60,6 +60,13 @@
             </div>
           </section>
 
+          <article class="panel" id="categoryBudgetsPanel" style="display: none;">
+            <div class="budget-header" style="margin-bottom: 12px;">
+              <h3 style="font-size: 14px; color: var(--muted);">分类预算明细</h3>
+            </div>
+            <div id="categoryBudgetsList"></div>
+          </article>
+
           <section>
             <div class="section-title">
               <h2>最近账单</h2>
@@ -281,6 +288,7 @@
             <input id="newCategoryName" type="text" maxlength="8" placeholder="分类名" />
           </label>
         </div>
+        <button class="secondary-button" type="button" id="clearAllCategoryBudgets">清除所有分类预算</button>
         <button class="primary-button" type="submit">添加分类</button>
       </form>
     </dialog>
