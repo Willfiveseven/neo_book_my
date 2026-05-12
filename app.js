@@ -72,6 +72,8 @@ const state = {
   statsRange: "period",
   billCustomRange: { start: "", end: "" },
   statsCustomRange: { start: "", end: "" },
+  dailyDetailRange: "all",
+  dailyDetailCustomRange: { start: "", end: "" },
   appearance: readJSON("haji_appearance", defaultAppearance),
   period: readJSON("haji_period", defaultPeriod),
 };
@@ -278,46 +280,74 @@ function renderOverview() {
   $("#budgetProgress").style.width = `${percent}%`;
   $("#settingsBudget").textContent = money(currentB);
 
+  // 计算今日和昨日总收支
+  const yesterdayISO = daysAgo(1);
+  let todayExp = 0, todayInc = 0;
+  let yesterdayExp = 0, yesterdayInc = 0;
+
+  state.records.forEach(r => {
+    if (r.excluded) return; // 不计入统计
+    if (r.date === todayISO) {
+      if (r.type === 'expense') todayExp += Number(r.amount);
+      if (r.type === 'income') todayInc += Number(r.amount);
+    } else if (r.date === yesterdayISO) {
+      if (r.type === 'expense') yesterdayExp += Number(r.amount);
+      if (r.type === 'income') yesterdayInc += Number(r.amount);
+    }
+  });
+
+  $("#todayExpenseTotal").textContent = money(todayExp);
+  $("#todayIncomeTotal").textContent = money(todayInc);
+  $("#yesterdayExpenseTotal").textContent = money(yesterdayExp);
+  $("#yesterdayIncomeTotal").textContent = money(yesterdayInc);
+
   const catExpenses = getCategoryExpenses();
   const budgetCats = (state.categories.expense || []).filter(c => c.budget > 0);
   const panel = $("#categoryBudgetsPanel");
-  if (budgetCats.length > 0) {
-    panel.style.display = "block";
-    $("#categoryBudgetsList").innerHTML = budgetCats.map(cat => {
-      const spent = catExpenses[cat.name] || 0;
-      const catLeft = Math.max(cat.budget - spent, 0);
-      const pct = Math.min((spent / cat.budget) * 100, 100);
-      const isNear = pct >= 90;
-      const isOver = spent > cat.budget;
-      return `
-        <div class="cat-budget-item ${isNear ? 'near-limit' : ''}">
-          <div class="cat-budget-info">
-            <span>${cat.icon} ${cat.name} <small style="color:var(--muted);font-size:11px;margin-left:4px;">${money(spent)} / ${money(cat.budget)}</small></span>
-            <span>${isOver ? '超支' : '剩余'} ${money(Math.abs(cat.budget - spent))}</span>
+  if (panel) {
+    if (budgetCats.length > 0) {
+      panel.style.display = "block";
+      $("#categoryBudgetsList").innerHTML = budgetCats.map(cat => {
+        const spent = catExpenses[cat.name] || 0;
+        const catLeft = Math.max(cat.budget - spent, 0);
+        const pct = Math.min((spent / cat.budget) * 100, 100);
+        const isNear = pct >= 90;
+        const isOver = spent > cat.budget;
+        return `
+          <div class="cat-budget-item ${isNear ? 'near-limit' : ''}">
+            <div class="cat-budget-info">
+              <span>${cat.icon} ${cat.name} <small style="color:var(--muted);font-size:11px;margin-left:4px;">${money(spent)} / ${money(cat.budget)}</small></span>
+              <span>${isOver ? '超支' : '剩余'} ${money(Math.abs(cat.budget - spent))}</span>
+            </div>
+            <div class="cat-progress-bar">
+              <div class="progress-fill ${isNear ? 'danger' : ''}" style="width: ${pct}%"></div>
+            </div>
           </div>
-          <div class="cat-progress-bar">
-            <div class="progress-fill ${isNear ? 'danger' : ''}" style="width: ${pct}%"></div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } else {
-    panel.style.display = "none";
+        `;
+      }).join('');
+    } else {
+      panel.style.display = "none";
+    }
   }
 }
 
 function recordTemplate(record) {
   const sign = record.type === "income" ? "+" : "-";
   return `
-    <article class="record-item">
-      <button type="button" data-edit-record="${record.id}" aria-label="编辑${record.category}">
-        <div class="record-icon">${record.icon || "其"}</div>
-        <div class="record-main">
-          <strong>${record.category}${record.excluded ? '<span class="excluded-tag">不计入</span>' : ''}</strong>
-          <span>${record.date}${record.note ? ` · ${record.note}` : ""}</span>
-        </div>
-        <div class="record-amount ${record.type}">${sign}${money(record.amount)}</div>
-      </button>
+    <article class="record-item" data-record-id="${record.id}">
+      <div class="swipe-actions">
+        <button class="swipe-delete-btn" data-delete-record="${record.id}">删除</button>
+      </div>
+      <div class="swipe-content">
+        <button type="button" class="record-main-btn" data-edit-record="${record.id}" aria-label="编辑${record.category}">
+          <div class="record-icon">${record.icon || "其"}</div>
+          <div class="record-main">
+            <strong>${record.category}${record.excluded ? '<span class="excluded-tag">不计入</span>' : ''}</strong>
+            <span>${record.date}${record.note ? ` · ${record.note}` : ""}</span>
+          </div>
+          <div class="record-amount ${record.type}">${sign}${money(record.amount)}</div>
+        </button>
+      </div>
     </article>
   `;
 }
@@ -394,6 +424,98 @@ function renderStats() {
       : `<div class="empty-state">有${typeLabel}后会显示分类占比。</div>`;
   renderPieChart(entries, recordTotal, colors, typeLabel);
   renderChartMode();
+  renderDailyTrend(rangeRecords);
+}
+
+function renderDailyTrend(rangeRecords) {
+  // 按日期分组汇总
+  const dailyData = {};
+  rangeRecords.forEach(r => {
+    if (r.excluded) return;
+    if (!dailyData[r.date]) {
+      dailyData[r.date] = { expense: 0, income: 0 };
+    }
+    dailyData[r.date][r.type] += Number(r.amount);
+  });
+
+  // 转换为数组并按日期降序排列
+  const dailyList = Object.entries(dailyData)
+    .sort((a, b) => new Date(b[0]) - new Date(a[0]));
+
+  const container = $("#dailyTrendList");
+  if (!dailyList.length) {
+    container.innerHTML = `<div class="empty-state">当前时间范围内没有收支记录。</div>`;
+    return;
+  }
+
+  // 首页的每日明细只截取最近 3 天的数据
+  const top3 = dailyList.slice(0, 3);
+
+  container.innerHTML = top3.map(([date, data]) => {
+    let dateLabel = date;
+    if (date === todayISO) dateLabel = `${date} (今天)`;
+    else if (date === daysAgo(1)) dateLabel = `${date} (昨天)`;
+
+    return `
+      <button type="button" class="daily-trend-item" data-jump-date="${date}">
+        <div class="daily-trend-date">${dateLabel}</div>
+        <div class="daily-trend-amounts">
+          <span class="expense-amount">- ${money(data.expense)}</span>
+          <span class="income-amount">+ ${money(data.income)}</span>
+        </div>
+      </button>
+    `;
+  }).join('');
+}
+
+function renderDailyDetail() {
+  $("#dailyDetailRangeFilter").value = state.dailyDetailRange;
+  $("#dailyDetailCustomRange").classList.toggle("hidden", state.dailyDetailRange !== "custom");
+  $("#dailyDetailStartDate").value = state.dailyDetailCustomRange.start;
+  $("#dailyDetailEndDate").value = state.dailyDetailCustomRange.end;
+
+  const records = recordsForRange(state.dailyDetailRange, state.dailyDetailCustomRange);
+  
+  const dailyData = {};
+  records.forEach(r => {
+    if (r.excluded) return;
+    if (!dailyData[r.date]) {
+      dailyData[r.date] = { expense: 0, income: 0 };
+    }
+    dailyData[r.date][r.type] += Number(r.amount);
+  });
+
+  const dailyList = Object.entries(dailyData)
+    .sort((a, b) => new Date(b[0]) - new Date(a[0]));
+
+  const container = $("#dailyDetailList");
+  const invalidCustomRange = state.dailyDetailRange === "custom" && !customRangeIsValid(state.dailyDetailCustomRange);
+
+  if (invalidCustomRange) {
+    container.innerHTML = `<div class="empty-state">请选择有效的开始日期和结束日期。</div>`;
+    return;
+  }
+
+  if (!dailyList.length) {
+    container.innerHTML = `<div class="empty-state">当前时间范围内没有收支记录。</div>`;
+    return;
+  }
+
+  container.innerHTML = dailyList.map(([date, data]) => {
+    let dateLabel = date;
+    if (date === todayISO) dateLabel = `${date} (今天)`;
+    else if (date === daysAgo(1)) dateLabel = `${date} (昨天)`;
+
+    return `
+      <button type="button" class="daily-trend-item" data-jump-date="${date}">
+        <div class="daily-trend-date">${dateLabel}</div>
+        <div class="daily-trend-amounts">
+          <span class="expense-amount">- ${money(data.expense)}</span>
+          <span class="income-amount">+ ${money(data.income)}</span>
+        </div>
+      </button>
+    `;
+  }).join('');
 }
 
 function renderPieChart(entries, expenseTotal, colors, typeLabel = "支出") {
@@ -774,6 +896,93 @@ function importData(file) {
 }
 
 function bindEvents() {
+  let startX = 0, startY = 0, isDragging = false;
+  let activeSwipeContent = null;
+  let isScrolling = false;
+  let preventClick = false;
+
+  document.addEventListener('touchstart', (e) => {
+    const swipeContent = e.target.closest('.swipe-content');
+    
+    // 关闭其他已展开的滑动菜单
+    $$('.record-item.swiped').forEach(item => {
+      if (!swipeContent || item !== swipeContent.parentElement) {
+        item.classList.remove('swiped');
+        const content = item.querySelector('.swipe-content');
+        if (content) content.style.transform = '';
+      }
+    });
+
+    if (!swipeContent) return;
+
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    isScrolling = false;
+    activeSwipeContent = swipeContent;
+    activeSwipeContent.style.transition = 'none';
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!isDragging || !activeSwipeContent) return;
+    
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - startX;
+    const diffY = currentY - startY;
+
+    if (!isScrolling && Math.abs(diffY) > Math.abs(diffX) + 5) {
+      isScrolling = true;
+    }
+
+    if (isScrolling) {
+      activeSwipeContent.style.transform = '';
+      return;
+    }
+
+    const isAlreadySwiped = activeSwipeContent.parentElement.classList.contains('swiped');
+    let translateX = isAlreadySwiped ? diffX - 80 : diffX;
+    
+    if (translateX > 0) translateX = 0;
+    if (translateX < -100) translateX = -100;
+    
+    activeSwipeContent.style.transform = `translateX(${translateX}px)`;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!isDragging || !activeSwipeContent) return;
+    isDragging = false;
+    
+    if (isScrolling) {
+      activeSwipeContent = null;
+      return;
+    }
+
+    const currentX = e.changedTouches ? e.changedTouches[0].clientX : startX;
+    const diffX = currentX - startX;
+    const isAlreadySwiped = activeSwipeContent.parentElement.classList.contains('swiped');
+    
+    if (Math.abs(diffX) > 10) {
+      preventClick = true;
+      setTimeout(() => preventClick = false, 100);
+    }
+    
+    activeSwipeContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    
+    if (!isAlreadySwiped && diffX < -40) {
+      activeSwipeContent.parentElement.classList.add('swiped');
+      activeSwipeContent.style.transform = 'translateX(-80px)';
+    } else if (isAlreadySwiped && diffX > 40) {
+      activeSwipeContent.parentElement.classList.remove('swiped');
+      activeSwipeContent.style.transform = 'translateX(0)';
+    } else {
+      activeSwipeContent.style.transform = isAlreadySwiped ? 'translateX(-80px)' : 'translateX(0)';
+      if (!isAlreadySwiped) activeSwipeContent.parentElement.classList.remove('swiped');
+    }
+    
+    activeSwipeContent = null;
+  });
+
   $$(".tabbar button, [data-tab]").forEach((button) => {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
   });
@@ -819,6 +1028,34 @@ function bindEvents() {
     renderStats();
   });
 
+  $("#openDailyDetailBtn").addEventListener("click", () => {
+    renderDailyDetail();
+    $("#dailyDetailModal").showModal();
+  });
+
+  $("#closeDailyDetailBtn").addEventListener("click", () => {
+    $("#dailyDetailModal").close();
+  });
+
+  $("#closeDayRecordsBtn").addEventListener("click", () => {
+    $("#dayRecordsModal").close();
+  });
+
+  $("#dailyDetailRangeFilter").addEventListener("change", (e) => {
+    state.dailyDetailRange = e.target.value;
+    renderDailyDetail();
+  });
+
+  $("#dailyDetailStartDate").addEventListener("change", (e) => {
+    state.dailyDetailCustomRange.start = e.target.value;
+    renderDailyDetail();
+  });
+
+  $("#dailyDetailEndDate").addEventListener("change", (e) => {
+    state.dailyDetailCustomRange.end = e.target.value;
+    renderDailyDetail();
+  });
+
   $$(".segmented [data-type]").forEach((button) => {
     button.addEventListener("click", () => setType(button.dataset.type));
   });
@@ -831,6 +1068,61 @@ function bindEvents() {
   });
 
   document.addEventListener("click", (event) => {
+    if (preventClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    const deleteBtn = event.target.closest("[data-delete-record]");
+    if (deleteBtn) {
+      const id = Number(deleteBtn.dataset.deleteRecord);
+      const recordItem = deleteBtn.closest('.record-item');
+      if (confirm("确定要删除这笔账单吗？")) {
+        recordItem.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+        recordItem.style.opacity = "0";
+        recordItem.style.transform = "scale(0.95)";
+        setTimeout(() => {
+          state.records = state.records.filter((item) => item.id !== id);
+          saveState();
+          renderAll();
+          // 如果当前在某日账单详情弹窗中，也需要更新弹窗内容
+          const dayRecordsModal = $("#dayRecordsModal");
+          if (dayRecordsModal.open) {
+            const jumpBtn = $("#dayRecordsTitle").textContent.split(' ')[0]; // 从标题取日期
+            const dateStr = jumpBtn.length === 10 ? jumpBtn : todayISO; // 简单回退处理
+            const records = sortedRecords(state.records.filter(r => r.date === dateStr || jumpBtn.includes(r.date)));
+            $("#dayRecordsList").innerHTML = records.length
+              ? records.map(recordTemplate).join("")
+              : `<div class="empty-state">这一天没有账单。</div>`;
+          }
+        }, 200);
+      } else {
+        recordItem.classList.remove('swiped');
+        const content = recordItem.querySelector('.swipe-content');
+        if (content) content.style.transform = '';
+      }
+      return;
+    }
+
+    const jumpBtn = event.target.closest("[data-jump-date]");
+    if (jumpBtn) {
+      const date = jumpBtn.dataset.jumpDate;
+      let dateLabel = date;
+      if (date === todayISO) dateLabel = `${date} (今天)`;
+      else if (date === daysAgo(1)) dateLabel = `${date} (昨天)`;
+      
+      $("#dayRecordsTitle").textContent = `${dateLabel} 账单`;
+      
+      const records = sortedRecords(state.records.filter(r => r.date === date));
+      $("#dayRecordsList").innerHTML = records.length
+        ? records.map(recordTemplate).join("")
+        : `<div class="empty-state">这一天没有账单。</div>`;
+        
+      $("#dayRecordsModal").showModal();
+      return;
+    }
+
     const editButton = event.target.closest("[data-edit-record]");
     if (!editButton) return;
     const id = Number(editButton.dataset.editRecord);

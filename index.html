@@ -42,8 +42,21 @@
             </div>
           </article>
 
-          <section class="budget-panel">
-            <div class="section-title">
+          <section class="daily-summary-panel">
+            <div class="daily-card">
+              <p>今日支出</p>
+              <strong id="todayExpenseTotal">¥0.00</strong>
+              <span>收入 <b id="todayIncomeTotal">¥0.00</b></span>
+            </div>
+            <div class="daily-card">
+              <p>昨日支出</p>
+              <strong id="yesterdayExpenseTotal">¥0.00</strong>
+              <span>收入 <b id="yesterdayIncomeTotal">¥0.00</b></span>
+            </div>
+          </section>
+
+          <section class="budget-panel" style="margin-bottom: 12px;">
+            <div class="section-title" style="margin-top: 0;">
               <h2>预算进度</h2>
               <button class="text-button" data-open-budget>设置</button>
             </div>
@@ -155,6 +168,14 @@
               <div class="pie-chart" id="pieChart" aria-label="分类饼图"></div>
               <div class="pie-legend" id="pieLegend"></div>
             </div>
+          </section>
+
+          <section class="daily-trend-panel">
+            <div class="section-title">
+              <h2>每日明细</h2>
+              <button class="text-button" type="button" id="openDailyDetailBtn">详细</button>
+            </div>
+            <div class="daily-trend-list" id="dailyTrendList"></div>
           </section>
         </section>
 
@@ -393,6 +414,43 @@
           </label>
         </div>
         <button class="primary-button" type="submit">保存周期</button>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="dailyDetailModal">
+      <form method="dialog">
+        <div class="modal-header">
+          <h2>每日明细详情</h2>
+          <button type="button" class="icon-button" id="closeDailyDetailBtn" aria-label="关闭">×</button>
+        </div>
+        <div class="filter-stack" style="margin-bottom: 12px;">
+          <select id="dailyDetailRangeFilter" aria-label="时间范围">
+            <option value="period">当前账本周期</option>
+            <option value="all" selected>全部历史</option>
+            <option value="custom">自定义日期</option>
+          </select>
+        </div>
+        <div class="date-filter hidden" id="dailyDetailCustomRange">
+          <label class="text-field">
+            <span>开始日期</span>
+            <input id="dailyDetailStartDate" type="date" />
+          </label>
+          <label class="text-field">
+            <span>结束日期</span>
+            <input id="dailyDetailEndDate" type="date" />
+          </label>
+        </div>
+        <div class="daily-trend-list" id="dailyDetailList" style="max-height: 50vh; overflow-y: auto; padding-right: 4px;"></div>
+      </form>
+    </dialog>
+
+    <dialog class="entry-modal" id="dayRecordsModal">
+      <form method="dialog">
+        <div class="modal-header">
+          <h2 id="dayRecordsTitle">某日账单</h2>
+          <button type="button" class="icon-button" id="closeDayRecordsBtn" aria-label="关闭">×</button>
+        </div>
+        <div class="record-list" id="dayRecordsList" style="max-height: 60vh; overflow-y: auto; padding-right: 4px;"></div>
       </form>
     </dialog>
 
