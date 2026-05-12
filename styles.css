@@ -144,7 +144,7 @@ button {
 .hero-panel {
   padding: 16px 20px;
   border-radius: 16px;
-  background: var(--top-card-bg, linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%));
+  background: var(--hero-bg);
   margin-bottom: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
