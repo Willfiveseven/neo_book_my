@@ -1315,6 +1315,9 @@ function bindEvents() {
   $("#privacyLock").addEventListener("click", () => {
     alert("隐私锁需要接入真实 App 容器后启用。");
   });
+
+  $("#aboutApp").addEventListener("click", () => $("#aboutModal").showModal());
+  $("#closeAbout").addEventListener("click", () => $("#aboutModal").close());
 }
 
 window.addEventListener("DOMContentLoaded", () => {
