@@ -855,6 +855,7 @@ function removeCategory(name) {
 }
 
 function exportData() {
+  const exportTimestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const data = {
     app: "轻量记账",
     exportedAt: new Date().toISOString(),
@@ -868,7 +869,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `haji-book-${todayISO}.json`;
+  link.download = `output_data_book-${exportTimestamp}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
