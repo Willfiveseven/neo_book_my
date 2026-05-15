@@ -337,7 +337,8 @@ button {
 }
 
 .record-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
@@ -347,6 +348,7 @@ button {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ef4444;
+  flex-shrink: 0;
 }
 
 .swipe-content {
@@ -552,6 +554,17 @@ select {
 .bar-row {
   display: grid;
   gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bar-row:active {
+  opacity: 0.7;
 }
 
 .bar-label {
@@ -595,6 +608,7 @@ select {
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: opacity 0.2s;
+  flex-shrink: 0;
 }
 
 .daily-trend-item:active {
@@ -649,6 +663,16 @@ select {
   gap: 8px;
   color: var(--muted);
   font-size: 13px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pie-legend-item:active {
+  opacity: 0.7;
 }
 
 .pie-swatch {

@@ -505,6 +505,16 @@
       </form>
     </dialog>
 
+    <dialog class="entry-modal" id="categoryRecordsModal">
+      <form method="dialog">
+        <div class="modal-header">
+          <h2 id="categoryRecordsTitle">分类明细</h2>
+          <button type="button" class="icon-button" id="closeCategoryRecordsBtn" aria-label="关闭">×</button>
+        </div>
+        <div class="record-list" id="categoryRecordsList" style="max-height: 60vh; overflow-y: auto; padding-right: 4px;"></div>
+      </form>
+    </dialog>
+
     <input id="importFile" type="file" accept="application/json,.json" hidden />
 
     <script src="app.js"></script>

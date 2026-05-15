@@ -412,10 +412,10 @@ function renderStats() {
         .map(([name, value], index) => {
           const width = recordTotal ? Math.max((value / recordTotal) * 100, 4) : 0;
           return `
-            <div class="bar-row">
+            <button type="button" class="bar-row category-detail-btn" data-category="${name}">
               <div class="bar-label"><span>${name}</span><strong>${money(value)}</strong></div>
               <div class="bar-track"><div class="bar-fill" style="width:${width}%; background:${colors[index % colors.length]}"></div></div>
-            </div>
+            </button>
           `;
         })
         .join("")
@@ -537,11 +537,11 @@ function renderPieChart(entries, expenseTotal, colors, typeLabel = "支出") {
     .map(([name, value], index) => {
       const percent = Math.round((value / expenseTotal) * 100);
       return `
-        <div class="pie-legend-item">
+        <button type="button" class="pie-legend-item category-detail-btn" data-category="${name}">
           <span class="pie-swatch" style="background:${colors[index % colors.length]}"></span>
           <span>${name}</span>
           <strong>${percent}% · ${money(value)}</strong>
-        </div>
+        </button>
       `;
     })
     .join("");
@@ -1042,6 +1042,10 @@ function bindEvents() {
     $("#dayRecordsModal").close();
   });
 
+  $("#closeCategoryRecordsBtn").addEventListener("click", () => {
+    $("#categoryRecordsModal").close();
+  });
+
   $("#dailyDetailRangeFilter").addEventListener("change", (e) => {
     state.dailyDetailRange = e.target.value;
     renderDailyDetail();
@@ -1097,6 +1101,19 @@ function bindEvents() {
               ? records.map(recordTemplate).join("")
               : `<div class="empty-state">这一天没有账单。</div>`;
           }
+
+          // 如果当前在分类明细弹窗中，也需要更新弹窗内容
+          const categoryRecordsModal = $("#categoryRecordsModal");
+          if (categoryRecordsModal.open) {
+            const categoryTitle = $("#categoryRecordsTitle").textContent;
+            const category = categoryTitle.replace(" 明细", "");
+            const rangeRecords = recordsForRange(state.statsRange, state.statsCustomRange);
+            const filteredRecords = rangeRecords.filter(r => r.type === state.statsType && r.category === category && !r.excluded);
+            const records = sortedRecords(filteredRecords);
+            $("#categoryRecordsList").innerHTML = records.length
+              ? records.map(recordTemplate).join("")
+              : `<div class="empty-state">没有对应的账单。</div>`;
+          }
         }, 200);
       } else {
         recordItem.classList.remove('swiped');
@@ -1121,6 +1138,23 @@ function bindEvents() {
         : `<div class="empty-state">这一天没有账单。</div>`;
         
       $("#dayRecordsModal").showModal();
+      return;
+    }
+
+    const categoryBtn = event.target.closest(".category-detail-btn");
+    if (categoryBtn) {
+      const category = categoryBtn.dataset.category;
+      $("#categoryRecordsTitle").textContent = `${category} 明细`;
+      
+      const rangeRecords = recordsForRange(state.statsRange, state.statsCustomRange);
+      const filteredRecords = rangeRecords.filter(r => r.type === state.statsType && r.category === category && !r.excluded);
+      const records = sortedRecords(filteredRecords);
+      
+      $("#categoryRecordsList").innerHTML = records.length
+        ? records.map(recordTemplate).join("")
+        : `<div class="empty-state">没有对应的账单。</div>`;
+        
+      $("#categoryRecordsModal").showModal();
       return;
     }
 
